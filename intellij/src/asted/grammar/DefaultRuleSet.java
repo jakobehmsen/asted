@@ -18,6 +18,6 @@ public class DefaultRuleSet implements RuleSet {
 
     @Override
     public Pattern get(String name) {
-        return null;
+        return rules.get(name);
     }
 }
