@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -16,6 +17,9 @@ public class Main {
         boolean accepts(char ch);
         boolean expectsMore();
         void next(char ch);
+        default void setSelected(boolean isSelected) {
+
+        }
     }
 
     private interface KeyPatternVisitorFactory {
@@ -55,6 +59,14 @@ public class Main {
 
         public void next(char ch) {
             index++;
+        }
+
+        public void prev(char ch) {
+            index--;
+        }
+
+        public int getIndex() {
+            return index;
         }
     }
 
@@ -161,10 +173,75 @@ public class Main {
                         line.setLayout(new BoxLayout(line, BoxLayout.X_AXIS));
                         content.add(line);
 
-                        KeyPatternVisitorFactory keyPatternVisitorFactory = new KeyPatternVisitorFactory() {
+                        return new KeyPatternVisitor() {
+                            private int partsIndex = -1;
+                            private int nodeIndex = -1;
+                            private KeyPatternVisitor currentNode;
+
                             @Override
+                            public boolean accepts(char ch) {
+                                return currentNode.accepts(ch);
+                            }
+
+                            @Override
+                            public boolean expectsMore() {
+                                return currentNode.expectsMore();
+                            }
+
+                            @Override
+                            public void next(char ch) {
+                                if(partsIndex == -1) {
+                                    partsIndex++;
+                                    updatePart();
+                                }
+
+                                currentNode.next(ch);
+
+                                /*if(currentNode.expectsMore()) {
+                                    currentNode.next(ch);
+                                }*/
+                            }
+
+                            private void updatePart() {
+                                currentNode = partsIndex < parts.size()
+                                    ? createKeyPatternVisitor(parts.get(partsIndex))
+                                    : new KeyPatternVisitor() {
+                                    @Override
+                                    public boolean accepts(char ch) {
+                                        return false;
+                                    }
+
+                                    @Override
+                                    public boolean expectsMore() {
+                                        return false;
+                                    }
+
+                                    @Override
+                                    public void next(char ch) {
+
+                                    }
+                                };
+                            }
+
+                            ArrayList<KeyPatternVisitor> selectors = new ArrayList<>();
+                            //int currentSelector = -1;
+
+                            private void select(int index) {
+                                if(nodeIndex != -1) {
+                                    currentNode.setSelected(false);
+                                }
+
+                                nodeIndex = index;
+                                partsIndex = index;
+
+                                if(nodeIndex != -1) {
+                                    currentNode = selectors.get(nodeIndex);
+                                    currentNode.setSelected(true);
+                                }
+                            }
+
                             public KeyPatternVisitor createKeyPatternVisitor(Pattern pattern) {
-                                return pattern.accept(new PatternVisitor<KeyPatternVisitor>() {
+                                KeyPatternVisitor kpv = pattern.accept(new PatternVisitor<KeyPatternVisitor>() {
                                     @Override
                                     public KeyPatternVisitor visitMention(String name) {
                                         return null;
@@ -173,10 +250,13 @@ public class Main {
                                     @Override
                                     public KeyPatternVisitor visitKeyword(String word) {
                                         final JLabel label = new JLabel();
+
                                         final KeyKeywordVisitor keyKeywordVisitor = new KeyKeywordVisitor(word);
                                         line.add(label);
 
                                         return new KeyPatternVisitor() {
+                                            int length = 0;
+
                                             @Override
                                             public boolean accepts(char ch) {
                                                 return keyKeywordVisitor.accepts(ch);
@@ -189,12 +269,186 @@ public class Main {
 
                                             @Override
                                             public void next(char ch) {
-                                                keyKeywordVisitor.next(ch);
-                                                label.setText(label.getText() + ch);
-                                                if(!keyKeywordVisitor.expectsMore()) {
-                                                    label.setForeground(Color.BLUE);
+                                                if(ch == KeyEvent.VK_BACK_SPACE) {
+                                                    if(label.getText().length() > 0) {
+                                                        label.setForeground(Color.BLACK);
+                                                        label.setText(label.getText().substring(0, length - 1));
 
-                                                    line.add(Box.createRigidArea(new Dimension(5, 0)));
+                                                        if (length == keyKeywordVisitor.getIndex()) {
+                                                            keyKeywordVisitor.prev(ch);
+                                                        } else if (length > keyKeywordVisitor.getIndex()) {
+                                                            label.setForeground(Color.RED);
+                                                        }
+
+                                                        length--;
+
+                                                        if (length == keyKeywordVisitor.getIndex()) {
+                                                            label.setForeground(Color.BLACK);
+                                                        }
+                                                    } else {
+                                                        line.remove(label);
+                                                        selectors.remove(this);
+                                                        int previousIndex = nodeIndex - 1;
+                                                        nodeIndex = -1;
+                                                        select(previousIndex);
+                                                    }
+                                                } else {
+                                                    if(keyKeywordVisitor.expectsMore()) {
+                                                        label.setForeground(Color.BLACK);
+                                                        label.setText(label.getText() + ch);
+
+                                                        if (keyKeywordVisitor.accepts(ch)) {
+                                                            keyKeywordVisitor.next(ch);
+                                                            if (!keyKeywordVisitor.expectsMore()) {
+                                                                //label.setOpaque(false);
+                                                                label.setForeground(Color.BLUE);
+                                                                //label.setBackground(line.getBackground());
+
+                                                                line.add(Box.createRigidArea(new Dimension(5, 0)));
+
+                                                                partsIndex++;
+                                                                updatePart();
+                                                            }
+                                                        } else {
+                                                            //canMatch = false;
+                                                            label.setForeground(Color.RED);
+                                                        }
+
+                                                        length++;
+                                                    } else {
+                                                        partsIndex++;
+                                                        updatePart();
+                                                        currentNode.next(ch);
+                                                    }
+                                                }
+                                            }
+
+                                            @Override
+                                            public void setSelected(boolean isSelected) {
+                                                if(isSelected) {
+                                                    label.setOpaque(true);
+                                                    label.setBackground(Color.WHITE);
+                                                } else {
+                                                    label.setOpaque(false);
+                                                }
+
+                                                label.revalidate();
+                                            }
+                                        };
+                                    }
+
+                                    @Override
+                                    public KeyPatternVisitor visitRegex(java.util.regex.Pattern pattern) {
+                                        return null;
+                                    }
+
+                                    @Override
+                                    public KeyPatternVisitor visitSequence(List<Pattern> parts) {
+                                        return null;
+                                    }
+
+                                    @Override
+                                    public KeyPatternVisitor visitDecision(List<Pattern> alternatives) {
+                                        return null;
+                                    }
+                                });
+
+                                selectors.add(kpv);
+                                select(selectors.size() - 1);
+                                //currentSelector = selectors.size() - 1;
+
+                                return kpv;
+                            };
+                        };
+
+                        /*KeyPatternVisitorFactory keyPatternVisitorFactory = new KeyPatternVisitorFactory() {
+                            ArrayList<KeyPatternVisitor> selectors = new ArrayList<>();
+                            int currentSelector = -1;
+
+                            private void setSelected(int index) {
+                                if(currentSelector != -1)
+                                    selectors.get(currentSelector).setSelected(false);
+
+                                if(index != -1)
+                                    selectors.get(index).setSelected(true);
+
+                                currentSelector = index;
+                            }
+
+                            @Override
+                            public KeyPatternVisitor createKeyPatternVisitor(Pattern pattern) {
+                                KeyPatternVisitor kpv = pattern.accept(new PatternVisitor<KeyPatternVisitor>() {
+                                    @Override
+                                    public KeyPatternVisitor visitMention(String name) {
+                                        return null;
+                                    }
+
+                                    @Override
+                                    public KeyPatternVisitor visitKeyword(String word) {
+                                        final JLabel label = new JLabel();
+
+                                        final KeyKeywordVisitor keyKeywordVisitor = new KeyKeywordVisitor(word);
+                                        line.add(label);
+
+                                        return new KeyPatternVisitor() {
+                                            int length = 0;
+
+                                            @Override
+                                            public boolean accepts(char ch) {
+                                                return keyKeywordVisitor.accepts(ch);
+                                            }
+
+                                            @Override
+                                            public boolean expectsMore() {
+                                                return keyKeywordVisitor.expectsMore();
+                                            }
+
+                                            @Override
+                                            public void next(char ch) {
+                                                if(ch == KeyEvent.VK_BACK_SPACE) {
+                                                    label.setForeground(Color.BLACK);
+                                                    label.setText(label.getText().substring(0, length - 1));
+
+                                                    if(length == keyKeywordVisitor.getIndex()) {
+                                                        keyKeywordVisitor.prev(ch);
+                                                    } else if(length > keyKeywordVisitor.getIndex()) {
+                                                        label.setForeground(Color.RED);
+                                                    }
+
+                                                    length--;
+
+                                                    if(length == keyKeywordVisitor.getIndex()) {
+                                                        label.setForeground(Color.BLACK);
+                                                    }
+                                                } else {
+                                                    label.setForeground(Color.BLACK);
+                                                    label.setText(label.getText() + ch);
+
+                                                    if (keyKeywordVisitor.accepts(ch)) {
+                                                        keyKeywordVisitor.next(ch);
+                                                        if (!keyKeywordVisitor.expectsMore()) {
+                                                            label.setOpaque(false);
+                                                            label.setForeground(Color.BLUE);
+                                                            //label.setBackground(line.getBackground());
+
+                                                            line.add(Box.createRigidArea(new Dimension(5, 0)));
+                                                        }
+                                                    } else {
+                                                        //canMatch = false;
+                                                        label.setForeground(Color.RED);
+                                                    }
+
+                                                    length++;
+                                                }
+                                            }
+
+                                            @Override
+                                            public void setSelected(boolean isSelected) {
+                                                if(isSelected) {
+                                                    label.setOpaque(true);
+                                                    label.setBackground(Color.WHITE);
+                                                } else {
+                                                    label.setOpaque(false);
                                                 }
                                             }
                                         };
@@ -215,10 +469,16 @@ public class Main {
                                         return null;
                                     }
                                 });
+
+                                selectors.add(kpv);
+                                setSelected(selectors.size() - 1);
+                                currentSelector = selectors.size() - 1;
+
+                                return kpv;
                             };
                         };
 
-                        return new SequenceKeywordVisitor(parts, keyPatternVisitorFactory);
+                        return new SequenceKeywordVisitor(parts, keyPatternVisitorFactory);*/
                     }
 
                     @Override
@@ -238,11 +498,12 @@ public class Main {
 
             @Override
             public void keyTyped(KeyEvent e) {
-                if (keyPatternVisitor.expectsMore()) {
+                /*if (keyPatternVisitor.expectsMore()) {
                     if (keyPatternVisitor.accepts(e.getKeyChar())) {
                         keyPatternVisitor.next(e.getKeyChar());
                     }
-                }
+                }*/
+                keyPatternVisitor.next(e.getKeyChar());
             }
         });
 
