@@ -25,10 +25,7 @@ public class Main {
                     return true;
                 }
             };
-            private asted.matching.Pattern<Character, NodeView> classKW =
-                new asted.matching.SequencePattern<Character, NodeView>(Arrays.asList(
-                    new asted.matching.KeywordPattern("class")
-                ));
+            private asted.matching.Pattern<Character, NodeView> classKW = new asted.matching.KeywordPattern("class");
             private asted.matching.Pattern<Character, Character> id =
                 new asted.matching.SequencePattern<Character, Character>(Arrays.asList(
                     CharPattern.isLetter(),
@@ -43,8 +40,130 @@ public class Main {
                     )
                 ));
 
+            private void updateTextViewSize(JTextArea textView) {
+                textView.revalidate();
+                textView.repaint();
+            }
+
+            private JTextArea createTextView(String text) {
+                final JTextArea textView = new JTextArea(text) {
+                    @Override
+                    public Dimension getPreferredSize() {
+                        Rectangle r = null;
+                        try {
+                            r = modelToView(getDocument().getLength());
+                        } catch (BadLocationException e2) {
+                            e2.printStackTrace();
+                        }
+                        if (r != null) {
+                            return new Dimension(r.x + r.width, r.height);
+                        } else
+                            return super.getPreferredSize();
+                    }
+
+                    @Override
+                    public Dimension getMinimumSize() {
+                        return getPreferredSize();
+                    }
+
+                    @Override
+                    public Dimension getMaximumSize() {
+                        return getPreferredSize();
+                    }
+                };
+
+                textView.addComponentListener(new ComponentListener() {
+                    @Override
+                    public void componentResized(ComponentEvent e) {
+                        updateTextViewSize(textView);
+                        textView.removeComponentListener(this);
+                    }
+
+                    @Override
+                    public void componentMoved(ComponentEvent e) {
+
+                    }
+
+                    @Override
+                    public void componentShown(ComponentEvent e) {
+                    }
+
+                    @Override
+                    public void componentHidden(ComponentEvent e) {
+
+                    }
+                });
+                textView.getDocument().addDocumentListener(new DocumentListener() {
+                    @Override
+                    public void insertUpdate(DocumentEvent e) {
+                        updateTextViewSize(textView);
+                    }
+
+                    @Override
+                    public void removeUpdate(DocumentEvent e) {
+                        updateTextViewSize(textView);
+                    }
+
+                    @Override
+                    public void changedUpdate(DocumentEvent e) {
+                        updateTextViewSize(textView);
+                    }
+                });
+
+                return textView;
+            }
+
             private asted.matching.Pattern<Character, NodeView> ws = new ReferencePattern<>(() -> wsImpl);
-            private asted.matching.Pattern<Character, NodeView> program =
+            private asted.matching.Pattern<Character, NodeView> member =
+                new asted.matching.SequencePattern<Character, NodeView>(Arrays.asList(
+                    new asted.matching.KeywordPattern("private"),
+                    ws,
+                    LocalsPattern.capture("type", id),
+                    ws,
+                    LocalsPattern.capture("name", id),
+                    ws,
+                    new asted.matching.KeywordPattern(";"),
+                    new OutputPattern<Character, NodeView>(locals -> new NodeView() {
+                        String type = locals.get("type").toStream().map(x -> x.toString()).collect(Collectors.joining());
+                        String name = locals.get("name").toStream().map(x -> x.toString()).collect(Collectors.joining());
+
+                        @Override
+                        public JComponent toComponent() {
+                            JPanel pnl = new JPanel();
+
+                            pnl.setAlignmentX(Component.LEFT_ALIGNMENT);
+                            pnl.setLayout(new BoxLayout(pnl, BoxLayout.LINE_AXIS));
+
+                            pnl.add(new JLabel("private "));
+                            final JTextArea nameField = createTextView(type);
+                            pnl.add(nameField);
+                            pnl.add(new JLabel(" "));
+                            final JTextArea typeField = createTextView(name);
+                            pnl.add(typeField);
+                            pnl.add(new JLabel(";"));
+
+                            pnl.addAncestorListener(new AncestorListener() {
+                                @Override
+                                public void ancestorAdded(AncestorEvent event) {
+                                    //membersView.grabFocus();
+                                }
+
+                                @Override
+                                public void ancestorRemoved(AncestorEvent event) {
+
+                                }
+
+                                @Override
+                                public void ancestorMoved(AncestorEvent event) {
+
+                                }
+                            });
+
+                            return pnl;
+                        }
+                    })
+                ));
+            private asted.matching.Pattern<Character, NodeView> classDeclaration =
                 new asted.matching.SequencePattern<Character, NodeView>(Arrays.asList(
                     ws,
                     classKW,
@@ -69,123 +188,7 @@ public class Main {
 
                             classDesc.add(new JLabel("class "));
 
-                            final JTextArea nameField = new JTextArea(name);
-
-                            nameField.addComponentListener(new ComponentListener() {
-                                boolean initialized;
-                                @Override
-                                public void componentResized(ComponentEvent e) {
-                                    if(!initialized) {
-                                        Rectangle r = null;
-                                        try {
-                                            r = nameField.modelToView(nameField.getDocument().getLength());
-                                            System.out.println(r);
-                                        } catch (BadLocationException e2) {
-                                            e2.printStackTrace();
-                                        }
-                                        if(r != null) {
-                                            nameField.setPreferredSize(new Dimension(r.x + r.width, r.height));
-                                            nameField.setMinimumSize(new Dimension(r.x + r.width, r.height));
-                                            nameField.setMaximumSize(new Dimension(r.x + r.width, r.height));
-                                            pnl.revalidate();
-                                            pnl.repaint();
-                                        }
-                                    }
-                                }
-
-                                @Override
-                                public void componentMoved(ComponentEvent e) {
-
-                                }
-
-                                @Override
-                                public void componentShown(ComponentEvent e) {
-
-                                }
-
-                                @Override
-                                public void componentHidden(ComponentEvent e) {
-
-                                }
-                            });
-                            nameField.addAncestorListener(new AncestorListener() {
-                                @Override
-                                public void ancestorAdded(AncestorEvent event) {
-                                    Rectangle r = null;
-                                    try {
-                                        r = nameField.modelToView(nameField.getDocument().getLength());
-                                        System.out.println(r);
-                                    } catch (BadLocationException e) {
-                                        e.printStackTrace();
-                                    }
-                                    if(r != null) {
-                                        nameField.setPreferredSize(new Dimension(r.x + r.width, r.height));
-                                        nameField.setMinimumSize(new Dimension(r.x + r.width, r.height));
-                                        nameField.setMaximumSize(new Dimension(r.x + r.width, r.height));
-                                        pnl.revalidate();
-                                        pnl.repaint();
-                                    }
-                                }
-
-                                @Override
-                                public void ancestorRemoved(AncestorEvent event) {
-
-                                }
-
-                                @Override
-                                public void ancestorMoved(AncestorEvent event) {
-
-                                }
-                            });
-                            nameField.getDocument().addDocumentListener(new DocumentListener() {
-                                @Override
-                                public void insertUpdate(DocumentEvent e) {
-                                    Rectangle r = null;
-                                    try {
-                                        r = nameField.modelToView(nameField.getDocument().getLength());
-                                        System.out.println(r);
-                                    } catch (BadLocationException e2) {
-                                        e2.printStackTrace();
-                                    }
-                                    nameField.setPreferredSize(new Dimension(r.x + r.width, r.height));
-                                    nameField.setMinimumSize(new Dimension(r.x + r.width, r.height));
-                                    nameField.setMaximumSize(new Dimension(r.x + r.width, r.height));
-                                    pnl.revalidate();
-                                    pnl.repaint();
-                                }
-
-                                @Override
-                                public void removeUpdate(DocumentEvent e) {
-                                    Rectangle r = null;
-                                    try {
-                                        r = nameField.modelToView(nameField.getDocument().getLength());
-                                        System.out.println(r);
-                                    } catch (BadLocationException e2) {
-                                        e2.printStackTrace();
-                                    }
-                                    nameField.setPreferredSize(new Dimension(r.x + r.width, r.height));
-                                    nameField.setMinimumSize(new Dimension(r.x + r.width, r.height));
-                                    nameField.setMaximumSize(new Dimension(r.x + r.width, r.height));
-                                    pnl.revalidate();
-                                    pnl.repaint();
-                                }
-
-                                @Override
-                                public void changedUpdate(DocumentEvent e) {
-                                    Rectangle r = null;
-                                    try {
-                                        r = nameField.modelToView(nameField.getDocument().getLength());
-                                        System.out.println(r);
-                                    } catch (BadLocationException e2) {
-                                        e2.printStackTrace();
-                                    }
-                                    nameField.setPreferredSize(new Dimension(r.x + r.width, r.height));
-                                    nameField.setMinimumSize(new Dimension(r.x + r.width, r.height));
-                                    nameField.setMaximumSize(new Dimension(r.x + r.width, r.height));
-                                    pnl.revalidate();
-                                    pnl.repaint();
-                                }
-                            });
+                            final JTextArea nameField = createTextView(name);
 
                             classDesc.add(nameField);
                             JLabel openBraLbl = new JLabel(" {");
@@ -193,12 +196,21 @@ public class Main {
 
                             pnl.add(classDesc);
 
-                            UnderConstructionView membersView = new UnderConstructionView(classKW);
+                            JPanel membersViewHolder = new JPanel();
+                            UnderConstructionView membersView = new UnderConstructionView(member);
+                            membersViewHolder.setAlignmentX(Component.LEFT_ALIGNMENT);
+                            membersViewHolder.setLayout(new BoxLayout(membersViewHolder, BoxLayout.PAGE_AXIS));
+                            membersViewHolder.add(membersView);
+
+                            membersViewHolder.setAlignmentY(Component.TOP_ALIGNMENT);
+                            membersViewHolder.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
+                            pnl.add(membersViewHolder);
+
+                            pnl.add(new JLabel("}"));
+
                             pnl.addAncestorListener(new AncestorListener() {
                                 @Override
                                 public void ancestorAdded(AncestorEvent event) {
-                                    nameField.setPreferredSize(new Dimension(nameField.getPreferredSize().width, classDesc.getComponent(0).getMaximumSize().height));
-                                    nameField.setMaximumSize(nameField.getPreferredSize());
                                     membersView.grabFocus();
                                 }
 
@@ -212,11 +224,6 @@ public class Main {
 
                                 }
                             });
-                            membersView.setAlignmentX(Component.LEFT_ALIGNMENT);
-                            membersView.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
-                            pnl.add(membersView);
-
-                            pnl.add(new JLabel("}"));
 
                             return pnl;
                         }
@@ -227,6 +234,7 @@ public class Main {
                         }
                     })
                 ));
+            private asted.matching.Pattern<Character, NodeView> program = classDeclaration;
 
             @Override
             public boolean matches(Map<String, Buffer<Object>> locals, Input<Character> input, Buffer<NodeView> output) {
