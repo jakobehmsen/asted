@@ -128,7 +128,7 @@ public class Main {
                         String name = locals.get("name").toStream().map(x -> x.toString()).collect(Collectors.joining());
 
                         @Override
-                        public JComponent toComponent() {
+                        public JComponent toComponent(NodeViewContainer container) {
                             JPanel pnl = new JPanel();
 
                             pnl.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -146,6 +146,7 @@ public class Main {
                                 @Override
                                 public void ancestorAdded(AncestorEvent event) {
                                     //membersView.grabFocus();
+                                    container.activate();
                                 }
 
                                 @Override
@@ -158,6 +159,8 @@ public class Main {
 
                                 }
                             });
+
+                            //container.activate();
 
                             return pnl;
                         }
@@ -176,7 +179,7 @@ public class Main {
                     new OutputPattern<Character, NodeView>(locals -> new NodeView() {
                         String name = locals.get("name").toStream().map(x -> x.toString()).collect(Collectors.joining());
                         @Override
-                        public JComponent toComponent() {
+                        public JComponent toComponent(NodeViewContainer container) {
                             JPanel pnl = new JPanel();
 
                             pnl.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -196,14 +199,26 @@ public class Main {
 
                             pnl.add(classDesc);
 
+
                             JPanel membersViewHolder = new JPanel();
-                            UnderConstructionView membersView = new UnderConstructionView(member);
                             membersViewHolder.setAlignmentX(Component.LEFT_ALIGNMENT);
                             membersViewHolder.setLayout(new BoxLayout(membersViewHolder, BoxLayout.PAGE_AXIS));
-                            membersViewHolder.add(membersView);
-
                             membersViewHolder.setAlignmentY(Component.TOP_ALIGNMENT);
                             membersViewHolder.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
+
+                            NodeViewContainer memberViewContainer = new NodeViewContainer() {
+                                @Override
+                                public void activate() {
+                                    UnderConstructionView membersView = new UnderConstructionView(this, member);
+                                    membersView.setAlignmentX(Component.LEFT_ALIGNMENT);
+                                    membersViewHolder.add(membersView);
+                                    membersView.grabFocus();
+                                }
+                            };
+
+                            //UnderConstructionView membersView = new UnderConstructionView(member);
+                            //membersViewHolder.add(membersView);
+
                             pnl.add(membersViewHolder);
 
                             pnl.add(new JLabel("}"));
@@ -211,7 +226,8 @@ public class Main {
                             pnl.addAncestorListener(new AncestorListener() {
                                 @Override
                                 public void ancestorAdded(AncestorEvent event) {
-                                    membersView.grabFocus();
+                                    //membersView.grabFocus();
+                                    memberViewContainer.activate();
                                 }
 
                                 @Override
@@ -242,7 +258,7 @@ public class Main {
             }
         };
 
-        JComponent view = new UnderConstructionView(javaGrammar);
+        JComponent view = new UnderConstructionView(null, javaGrammar);
         JPanel contentPane = new JPanel(new BorderLayout());
         contentPane.add(view, BorderLayout.CENTER);
 
