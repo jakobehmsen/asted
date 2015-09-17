@@ -8,16 +8,15 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.Hashtable;
 
-public class UnderConstructionView extends JTextArea {
-    private NodeViewContainer container;
+public class UnderConstructionView extends NodeViewText {
     private Pattern<Character, NodeViewFactory> pattern;
 
-    public UnderConstructionView(NodeViewContainer container, Pattern<Character, NodeViewFactory> pattern) {
+    public UnderConstructionView(Pattern<Character, NodeViewFactory> pattern) {
         this.pattern = pattern;
         //setHorizontalAlignment(SwingConstants.LEFT);
         //setVerticalAlignment(SwingConstants.TOP);
 
-        getInputMap().put(KeyStroke.getKeyStroke("LEFT"), new AbstractAction() {
+        /*getInputMap().put(KeyStroke.getKeyStroke("LEFT"), new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (getCaretPosition() == 0) {
@@ -36,7 +35,7 @@ public class UnderConstructionView extends JTextArea {
                     setCaretPosition(getCaretPosition() + 1);
                 }
             }
-        });
+        });*/
 
         addKeyListener(new KeyAdapter() {
             @Override
@@ -55,7 +54,8 @@ public class UnderConstructionView extends JTextArea {
                         if (matches) {
                             // Convert output to view
                             NodeViewFactory nodeViewFactory = output.traverse().peek();
-                            JComponent outputAsView = nodeViewFactory.toComponent(container);
+                            //JComponent outputAsView = nodeViewFactory.toComponent(container);
+                            JComponent outputAsView = nodeViewFactory.toComponent((NodeViewContainer)getParent());
                             int zOrder = getParent().getComponentZOrder(UnderConstructionView.this);
                             Container parent = getParent();
                             getParent().remove(UnderConstructionView.this);
@@ -73,7 +73,7 @@ public class UnderConstructionView extends JTextArea {
         });
     }
 
-    @Override
+    /*@Override
     public Dimension getPreferredSize() {
         Rectangle r = null;
         try {
@@ -95,5 +95,5 @@ public class UnderConstructionView extends JTextArea {
     @Override
     public Dimension getMaximumSize() {
         return new Dimension(super.getMaximumSize().width, getPreferredSize().height);
-    }
+    }*/
 }

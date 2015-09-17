@@ -45,8 +45,8 @@ public class Main {
                 textView.repaint();
             }
 
-            private JTextArea createTextView(String text) {
-                final JTextArea textView = new JTextArea(text) {
+            private NodeViewText createTextView(String text) {
+                final NodeViewText textView = new NodeViewText() {
                     @Override
                     public Dimension getPreferredSize() {
                         Rectangle r = null;
@@ -71,6 +71,8 @@ public class Main {
                         return getPreferredSize();
                     }
                 };
+
+                textView.setText(text);
 
                 textView.addComponentListener(new ComponentListener() {
                     @Override
@@ -135,10 +137,10 @@ public class Main {
                             pnl.setLayout(new BoxLayout(pnl, BoxLayout.LINE_AXIS));
 
                             pnl.add(new JLabel("private "));
-                            final JTextArea nameField = createTextView(type);
+                            final NodeViewText nameField = createTextView(type);
                             pnl.add(nameField);
                             pnl.add(new JLabel(" "));
-                            final JTextArea typeField = createTextView(name);
+                            final NodeViewText typeField = createTextView(name);
                             pnl.add(typeField);
                             pnl.add(new JLabel(";"));
 
@@ -146,7 +148,8 @@ public class Main {
                                 @Override
                                 public void ancestorAdded(AncestorEvent event) {
                                     //membersView.grabFocus();
-                                    container.activate();
+                                    //container.activate();
+                                    ((NodeViewContainer)pnl.getParent()).activate();
                                 }
 
                                 @Override
@@ -180,18 +183,18 @@ public class Main {
                         String name = locals.get("name").toStream().map(x -> x.toString()).collect(Collectors.joining());
                         @Override
                         public JComponent toComponent(NodeViewContainer container) {
-                            JPanel pnl = new JPanel();
+                            NodeViewPanel pnl = new NodeViewPanel();
 
                             pnl.setAlignmentX(Component.LEFT_ALIGNMENT);
                             pnl.setLayout(new BoxLayout(pnl, BoxLayout.PAGE_AXIS));
 
-                            JPanel classDesc = new JPanel();
+                            NodeViewPanel classDesc = new NodeViewPanel();
                             classDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
                             classDesc.setLayout(new BoxLayout(classDesc, BoxLayout.LINE_AXIS));
 
                             classDesc.add(new JLabel("class "));
 
-                            final JTextArea nameField = createTextView(name);
+                            final NodeViewText nameField = createTextView(name);
 
                             classDesc.add(nameField);
                             JLabel openBraLbl = new JLabel(" {");
@@ -200,16 +203,24 @@ public class Main {
                             pnl.add(classDesc);
 
 
-                            JPanel membersViewHolder = new JPanel();
+                            NodeViewPanel membersViewHolder = new NodeViewPanel() {
+                                @Override
+                                public void activate() {
+                                    UnderConstructionView membersView = new UnderConstructionView(member);
+                                    membersView.setAlignmentX(Component.LEFT_ALIGNMENT);
+                                    this.add(membersView);
+                                    membersView.grabFocus();
+                                }
+                            };
                             membersViewHolder.setAlignmentX(Component.LEFT_ALIGNMENT);
                             membersViewHolder.setLayout(new BoxLayout(membersViewHolder, BoxLayout.PAGE_AXIS));
                             membersViewHolder.setAlignmentY(Component.TOP_ALIGNMENT);
                             membersViewHolder.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
 
-                            NodeViewContainer memberViewContainer = new NodeViewContainer() {
+                            /*NodeViewContainer memberViewContainer = new NodeViewContainer() {
                                 @Override
                                 public void activate() {
-                                    UnderConstructionView membersView = new UnderConstructionView(this, member);
+                                    UnderConstructionView membersView = new UnderConstructionView(member);
                                     membersView.setAlignmentX(Component.LEFT_ALIGNMENT);
                                     membersViewHolder.add(membersView);
                                     membersView.grabFocus();
@@ -224,7 +235,7 @@ public class Main {
                                         ((NodeView)membersViewHolder.getComponent(index - 1)).focusEnd();
                                     }
                                 }
-                            };
+                            };*/
 
                             //UnderConstructionView membersView = new UnderConstructionView(member);
                             //membersViewHolder.add(membersView);
@@ -237,7 +248,7 @@ public class Main {
                                 @Override
                                 public void ancestorAdded(AncestorEvent event) {
                                     //membersView.grabFocus();
-                                    memberViewContainer.activate();
+                                    membersViewHolder.activate();
                                 }
 
                                 @Override
@@ -268,18 +279,9 @@ public class Main {
             }
         };
 
-        JComponent view = new UnderConstructionView(new NodeViewContainer() {
-            @Override
-            public void activate() {
-
-            }
-
-            @Override
-            public void focusEndBefore(JComponent component) {
-
-            }
-        }, javaGrammar);
-        JPanel contentPane = new JPanel(new BorderLayout());
+        JComponent view = new UnderConstructionView(javaGrammar);
+        NodeViewPanel contentPane = new NodeViewPanel();
+        contentPane.setLayout(new BorderLayout());
         contentPane.add(view, BorderLayout.CENTER);
 
         frame.setContentPane(contentPane);
