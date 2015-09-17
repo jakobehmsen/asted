@@ -3,25 +3,48 @@ package asted.matching;
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.Hashtable;
 
 public class UnderConstructionView extends JTextArea {
     private NodeViewContainer container;
-    private Pattern<Character, NodeView> pattern;
+    private Pattern<Character, NodeViewFactory> pattern;
 
-    public UnderConstructionView(NodeViewContainer container, Pattern<Character, NodeView> pattern) {
+    public UnderConstructionView(NodeViewContainer container, Pattern<Character, NodeViewFactory> pattern) {
         this.pattern = pattern;
         //setHorizontalAlignment(SwingConstants.LEFT);
         //setVerticalAlignment(SwingConstants.TOP);
+
+        getInputMap().put(KeyStroke.getKeyStroke("LEFT"), new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (getCaretPosition() == 0) {
+                    container.focusEndBefore(UnderConstructionView.this);
+                } else {
+                    setCaretPosition(getCaretPosition() - 1);
+                }
+            }
+        });
+        getInputMap().put(KeyStroke.getKeyStroke("RIGHT"), new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (getCaretPosition() == getDocument().getLength()) {
+                    //container.focusStartAfter(UnderConstructionView.this);
+                } else {
+                    setCaretPosition(getCaretPosition() + 1);
+                }
+            }
+        });
+
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyTyped(KeyEvent e) {
-                switch ((int)e.getKeyChar()) {
+                switch ((int) e.getKeyChar()) {
                     case KeyEvent.VK_ENTER: {
                         String inputStr = getText();
-                        Buffer<NodeView> output = Buffer.Util.create(NodeView.class);
+                        Buffer<NodeViewFactory> output = Buffer.Util.create(NodeViewFactory.class);
 
                         Hashtable<String, Buffer<Object>> locals = new Hashtable<>();
                         boolean matches = pattern.matches(
@@ -29,10 +52,10 @@ public class UnderConstructionView extends JTextArea {
                             output
                         );
 
-                        if(matches) {
+                        if (matches) {
                             // Convert output to view
-                            NodeView nodeView = output.traverse().peek();
-                            JComponent outputAsView = nodeView.toComponent(container);
+                            NodeViewFactory nodeViewFactory = output.traverse().peek();
+                            JComponent outputAsView = nodeViewFactory.toComponent(container);
                             int zOrder = getParent().getComponentZOrder(UnderConstructionView.this);
                             Container parent = getParent();
                             getParent().remove(UnderConstructionView.this);

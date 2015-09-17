@@ -15,17 +15,17 @@ public class Main {
     public static void main(String[] args) throws BadLocationException {
         JFrame frame = new JFrame();
 
-        asted.matching.Pattern<Character, NodeView> javaGrammar = new asted.matching.Pattern<Character, NodeView>() {
-            private asted.matching.Pattern<Character, NodeView> wsImpl = new asted.matching.Pattern<Character, NodeView>() {
+        asted.matching.Pattern<Character, NodeViewFactory> javaGrammar = new asted.matching.Pattern<Character, NodeViewFactory>() {
+            private asted.matching.Pattern<Character, NodeViewFactory> wsImpl = new asted.matching.Pattern<Character, NodeViewFactory>() {
                 @Override
-                public boolean matches(Map<String, Buffer<Object>> locals, Input<Character> input, Buffer<NodeView> output) {
+                public boolean matches(Map<String, Buffer<Object>> locals, Input<Character> input, Buffer<NodeViewFactory> output) {
                     while(Character.isWhitespace(input.peekChar()))
                         input.consume();
 
                     return true;
                 }
             };
-            private asted.matching.Pattern<Character, NodeView> classKW = new asted.matching.KeywordPattern("class");
+            private asted.matching.Pattern<Character, NodeViewFactory> classKW = new asted.matching.KeywordPattern("class");
             private asted.matching.Pattern<Character, Character> id =
                 new asted.matching.SequencePattern<Character, Character>(Arrays.asList(
                     CharPattern.isLetter(),
@@ -113,9 +113,9 @@ public class Main {
                 return textView;
             }
 
-            private asted.matching.Pattern<Character, NodeView> ws = new ReferencePattern<>(() -> wsImpl);
-            private asted.matching.Pattern<Character, NodeView> member =
-                new asted.matching.SequencePattern<Character, NodeView>(Arrays.asList(
+            private asted.matching.Pattern<Character, NodeViewFactory> ws = new ReferencePattern<>(() -> wsImpl);
+            private asted.matching.Pattern<Character, NodeViewFactory> member =
+                new asted.matching.SequencePattern<Character, NodeViewFactory>(Arrays.asList(
                     new asted.matching.KeywordPattern("private"),
                     ws,
                     LocalsPattern.capture("type", id),
@@ -123,13 +123,13 @@ public class Main {
                     LocalsPattern.capture("name", id),
                     ws,
                     new asted.matching.KeywordPattern(";"),
-                    new OutputPattern<Character, NodeView>(locals -> new NodeView() {
+                    new OutputPattern<Character, NodeViewFactory>(locals -> new NodeViewFactory() {
                         String type = locals.get("type").toStream().map(x -> x.toString()).collect(Collectors.joining());
                         String name = locals.get("name").toStream().map(x -> x.toString()).collect(Collectors.joining());
 
                         @Override
                         public JComponent toComponent(NodeViewContainer container) {
-                            JPanel pnl = new JPanel();
+                            NodeViewPanel pnl = new NodeViewPanel();
 
                             pnl.setAlignmentX(Component.LEFT_ALIGNMENT);
                             pnl.setLayout(new BoxLayout(pnl, BoxLayout.LINE_AXIS));
@@ -166,8 +166,8 @@ public class Main {
                         }
                     })
                 ));
-            private asted.matching.Pattern<Character, NodeView> classDeclaration =
-                new asted.matching.SequencePattern<Character, NodeView>(Arrays.asList(
+            private asted.matching.Pattern<Character, NodeViewFactory> classDeclaration =
+                new asted.matching.SequencePattern<Character, NodeViewFactory>(Arrays.asList(
                     ws,
                     classKW,
                     ws,
@@ -176,7 +176,7 @@ public class Main {
                     new asted.matching.KeywordPattern("{"),
                     ws,
                     new asted.matching.KeywordPattern("}"),
-                    new OutputPattern<Character, NodeView>(locals -> new NodeView() {
+                    new OutputPattern<Character, NodeViewFactory>(locals -> new NodeViewFactory() {
                         String name = locals.get("name").toStream().map(x -> x.toString()).collect(Collectors.joining());
                         @Override
                         public JComponent toComponent(NodeViewContainer container) {
@@ -214,6 +214,16 @@ public class Main {
                                     membersViewHolder.add(membersView);
                                     membersView.grabFocus();
                                 }
+
+                                @Override
+                                public void focusEndBefore(JComponent component) {
+                                    int index = membersViewHolder.getComponentZOrder(component);
+                                    if(index >= 0) {
+                                        //((JComponent)membersViewHolder.getComponent(index - 1)).grabFocus();
+
+                                        ((NodeView)membersViewHolder.getComponent(index - 1)).focusEnd();
+                                    }
+                                }
                             };
 
                             //UnderConstructionView membersView = new UnderConstructionView(member);
@@ -250,15 +260,25 @@ public class Main {
                         }
                     })
                 ));
-            private asted.matching.Pattern<Character, NodeView> program = classDeclaration;
+            private asted.matching.Pattern<Character, NodeViewFactory> program = classDeclaration;
 
             @Override
-            public boolean matches(Map<String, Buffer<Object>> locals, Input<Character> input, Buffer<NodeView> output) {
+            public boolean matches(Map<String, Buffer<Object>> locals, Input<Character> input, Buffer<NodeViewFactory> output) {
                 return program.matches(locals, input, output);
             }
         };
 
-        JComponent view = new UnderConstructionView(null, javaGrammar);
+        JComponent view = new UnderConstructionView(new NodeViewContainer() {
+            @Override
+            public void activate() {
+
+            }
+
+            @Override
+            public void focusEndBefore(JComponent component) {
+
+            }
+        }, javaGrammar);
         JPanel contentPane = new JPanel(new BorderLayout());
         contentPane.add(view, BorderLayout.CENTER);
 
