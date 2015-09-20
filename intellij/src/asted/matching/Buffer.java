@@ -8,32 +8,25 @@ import java.util.stream.StreamSupport;
 
 public interface Buffer<T> {
     void append(T item);
-    default void appendChar(char item) {
-        append((T)new Character(item));
+
+    default void appendAll(List<T> sequence) {
+        for (T x : sequence)
+            append(x);
     }
+
+    default void appendChar(char item) {
+        append((T) new Character(item));
+    }
+
+    default void appendChars(CharSequence charSequence) {
+        for(int i = 0; i < charSequence.length(); i++)
+            appendChar(charSequence.charAt(i));
+    }
+
     Input<T> traverse();
+
     default Stream<T> toStream() {
-        Iterable<T> iterable = new Iterable<T>() {
-            @Override
-            public Iterator<T> iterator() {
-                return new Iterator<T>() {
-                    Input<T> input = traverse();
-
-                    @Override
-                    public boolean hasNext() {
-                        return input.hasMore();
-                    }
-
-                    @Override
-                    public T next() {
-                        T value = input.peek();
-                        input.consume();
-                        return value;
-                    }
-                };
-            }
-        };
-        return StreamSupport.stream(iterable.spliterator(), false);
+        return traverse().toStream();
     }
 
     State state();
@@ -52,6 +45,11 @@ public interface Buffer<T> {
                 @Override
                 public void append(T item) {
                     list.add(item);
+                }
+
+                @Override
+                public void appendAll(List<T> sequence) {
+                    list.addAll(sequence);
                 }
 
                 @Override
@@ -75,13 +73,17 @@ public interface Buffer<T> {
                         }
 
                         @Override
-                        public State state() {
-                            return new State() {
-                                int indexToRestore = index;
+                        public InputState<T> state() {
+                            return new SequenceInputState<T>(index) {
+                                @Override
+                                public void tillCopy(InputState<T> end, Buffer<T> target) {
+                                    int endIndex = ((SequenceInputState<T>)end).getIndex();
+                                    target.appendAll(list.subList(getIndex(), endIndex));
+                                }
 
                                 @Override
                                 public void restore() {
-                                    index = indexToRestore;
+                                    index = getIndex();
                                 }
                             };
                         }
@@ -119,6 +121,11 @@ public interface Buffer<T> {
                 }
 
                 @Override
+                public void appendChars(CharSequence charSequence) {
+                    chars.append(charSequence);
+                }
+
+                @Override
                 public Input<Character> traverse() {
                     return new Input<Character>() {
                         private int index;
@@ -140,17 +147,21 @@ public interface Buffer<T> {
 
                         @Override
                         public char peekChar() {
-                            return chars.charAt(index);
+                            return hasMore() ? chars.charAt(index) : (char)-1;
                         }
 
                         @Override
-                        public State state() {
-                            return new State() {
-                                int indexToRestore = index;
+                        public InputState<Character> state() {
+                            return new SequenceInputState<Character>(index) {
+                                @Override
+                                public void tillCopy(InputState<Character> end, Buffer<Character> target) {
+                                    int endIndex = ((SequenceInputState<Character>)end).getIndex();
+                                    target.appendChars(chars.subSequence(getIndex(), endIndex));
+                                }
 
                                 @Override
                                 public void restore() {
-                                    index = indexToRestore;
+                                    index = getIndex();
                                 }
                             };
                         }
@@ -175,5 +186,5 @@ public interface Buffer<T> {
                 }
             };
         }
-    }
+    };
 }

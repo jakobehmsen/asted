@@ -30,6 +30,7 @@ public class DecisionPattern<T, R> implements Pattern<T, R> {
                 return true;
             } else {
                 inputState.restore();
+                outputState.restore();
                 return false;
             }
         });

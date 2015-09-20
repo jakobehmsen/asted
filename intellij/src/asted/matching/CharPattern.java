@@ -20,4 +20,9 @@ public class CharPattern {
         return (locals, input, output) ->
             Character.isLetter(input.peekChar());
     }
+
+    public static <T> Pattern<Character, T> isWhitespace() {
+        return (locals, input, output) ->
+            Character.isWhitespace(input.peekChar());
+    }
 }

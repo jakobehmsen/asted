@@ -8,6 +8,7 @@ import javax.swing.text.BadLocationException;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Arrays;
+import java.util.Hashtable;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -217,29 +218,6 @@ public class Main {
                             membersViewHolder.setAlignmentY(Component.TOP_ALIGNMENT);
                             membersViewHolder.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
 
-                            /*NodeViewContainer memberViewContainer = new NodeViewContainer() {
-                                @Override
-                                public void activate() {
-                                    UnderConstructionView membersView = new UnderConstructionView(member);
-                                    membersView.setAlignmentX(Component.LEFT_ALIGNMENT);
-                                    membersViewHolder.add(membersView);
-                                    membersView.grabFocus();
-                                }
-
-                                @Override
-                                public void focusEndBefore(JComponent component) {
-                                    int index = membersViewHolder.getComponentZOrder(component);
-                                    if(index >= 0) {
-                                        //((JComponent)membersViewHolder.getComponent(index - 1)).grabFocus();
-
-                                        ((NodeView)membersViewHolder.getComponent(index - 1)).focusEnd();
-                                    }
-                                }
-                            };*/
-
-                            //UnderConstructionView membersView = new UnderConstructionView(member);
-                            //membersViewHolder.add(membersView);
-
                             pnl.add(membersViewHolder);
 
                             pnl.add(new JLabel("}"));
@@ -278,6 +256,15 @@ public class Main {
                 return program.matches(locals, input, output);
             }
         };
+
+        Pattern<Character, String> p = new SequencePattern<>(Arrays.asList(
+            new PipePattern<>(new CapturePattern<>(new KeywordPattern<>("class")), StringPattern.join()),
+            StringPattern.ws(),
+            new PipePattern<>(new CapturePattern<>(StringPattern.id()), StringPattern.join())
+        ));
+
+        Buffer<String> o = Buffer.Util.create(String.class);
+        p.matches(new Hashtable<>(), Buffer.Util.wrap("class MyClass").traverse(), o);
 
         JComponent view = new UnderConstructionView(javaGrammar);
         NodeViewPanel contentPane = new NodeViewPanel();
