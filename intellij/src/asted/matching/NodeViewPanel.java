@@ -15,7 +15,7 @@ public class NodeViewPanel extends JPanel implements NodeView, NodeViewContainer
             .findFirst();
 
         if(textComponent.isPresent()) {
-            ((NodeView)textComponent.get()).focusEnd();
+            ((NodeView)textComponent.get()).focusStart();
         }
     }
 

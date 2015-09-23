@@ -1,5 +1,7 @@
 package asted.matching;
 
+import com.sun.glass.events.KeyEvent;
+
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
 import java.awt.*;
@@ -11,12 +13,13 @@ public class NodeViewText extends JTextArea implements NodeView {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (getCaretPosition() == 0) {
-                    ((NodeViewContainer)getParent()).focusEndBefore(NodeViewText.this);
+                    ((NodeViewContainer) getParent()).focusEndBefore(NodeViewText.this);
                 } else {
                     setCaretPosition(getCaretPosition() - 1);
                 }
             }
         });
+
         getInputMap().put(KeyStroke.getKeyStroke("RIGHT"), new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {

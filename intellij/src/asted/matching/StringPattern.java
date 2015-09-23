@@ -1,10 +1,23 @@
 package asted.matching;
 
 import java.util.Arrays;
-import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class StringPattern {
+    public static <T> Pattern<Character, T> is(CharSequence chars) {
+        return (locals, input, output) -> IntStream.range(0, chars.length()).allMatch(i -> {
+            if(input.hasMore()) {
+                if(chars.charAt(i) == input.peekChar()) {
+                    input.consume();
+                    return true;
+                }
+            }
+
+            return false;
+        });
+    }
+
     public static Pattern<Character, String> join() {
         return (locals, input, output) -> {
             String reduction = input.toStream().map(x -> x.toString()).collect(Collectors.joining());

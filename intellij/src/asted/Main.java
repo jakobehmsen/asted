@@ -26,7 +26,7 @@ public class Main {
                     return true;
                 }
             };
-            private asted.matching.Pattern<Character, NodeViewFactory> classKW = new asted.matching.KeywordPattern("class");
+            private asted.matching.Pattern<Character, NodeViewFactory> classKW = new IsStringPattern("class");
             private asted.matching.Pattern<Character, Character> id =
                 new asted.matching.SequencePattern<Character, Character>(Arrays.asList(
                     CharPattern.isLetter(),
@@ -119,13 +119,13 @@ public class Main {
             private asted.matching.Pattern<Character, NodeViewFactory> ws = new ReferencePattern<>(() -> wsImpl);
             private asted.matching.Pattern<Character, NodeViewFactory> member =
                 new asted.matching.SequencePattern<Character, NodeViewFactory>(Arrays.asList(
-                    new asted.matching.KeywordPattern("private"),
+                    new IsStringPattern("private"),
                     ws,
                     LocalsPattern.capture("type", id),
                     ws,
                     LocalsPattern.capture("name", id),
                     ws,
-                    new asted.matching.KeywordPattern(";"),
+                    new IsStringPattern(";"),
                     new OutputPattern<Character, NodeViewFactory>(locals -> new NodeViewFactory() {
                         String type = locals.get("type").toStream().map(x -> x.toString()).collect(Collectors.joining());
                         String name = locals.get("name").toStream().map(x -> x.toString()).collect(Collectors.joining());
@@ -177,9 +177,9 @@ public class Main {
                     ws,
                     LocalsPattern.capture("name", id),
                     ws,
-                    new asted.matching.KeywordPattern("{"),
+                    new IsStringPattern("{"),
                     ws,
-                    new asted.matching.KeywordPattern("}"),
+                    new IsStringPattern("}"),
                     new OutputPattern<Character, NodeViewFactory>(locals -> new NodeViewFactory() {
                         String name = locals.get("name").toStream().map(x -> x.toString()).collect(Collectors.joining());
                         @Override
@@ -222,7 +222,7 @@ public class Main {
 
                             pnl.add(new JLabel("}"));
 
-                            pnl.addAncestorListener(new AncestorListener() {
+                            membersViewHolder.addAncestorListener(new AncestorListener() {
                                 @Override
                                 public void ancestorAdded(AncestorEvent event) {
                                     //membersView.grabFocus();
@@ -258,15 +258,71 @@ public class Main {
         };
 
         Pattern<Character, String> p = new SequencePattern<>(Arrays.asList(
-            new PipePattern<>(new CapturePattern<>(new KeywordPattern<>("class")), StringPattern.join()),
+            new PipePattern<>(new CapturePattern<>(StringPattern.<Character>is("class")), StringPattern.join()),
             StringPattern.ws(),
             new PipePattern<>(new CapturePattern<>(StringPattern.id()), StringPattern.join())
         ));
 
-        Buffer<String> o = Buffer.Util.create(String.class);
-        p.matches(new Hashtable<>(), Buffer.Util.wrap("class MyClass").traverse(), o);
+        /*Pattern<Character, JComponent> p2 = new PipePattern<>(
+            new SequencePattern<>(Arrays.asList(
+                new PipePattern<>(new PipePattern<>(new CapturePattern<>(StringPattern.<Character>is("class")), StringPattern.join()), NodeViewPattern.label()),
+                StringPattern.ws(),
+                new PipePattern<>(new PipePattern<>(new CapturePattern<>(StringPattern.id()), StringPattern.join()), NodeViewPattern.text())
+            )),
+            NodeViewPattern.leftToRightList()
+        );*/
+
+
+        Pattern<Character, Character> modifier = new DecisionPattern<>(Arrays.asList(
+            StringPattern.<Character>is("private"),
+            StringPattern.<Character>is("public"),
+            StringPattern.<Character>is("protected")
+        ));
+
+        Pattern<Character, JComponent> p2 = new PipePattern<>(
+            new SequencePattern<>(Arrays.asList(
+                new PipePattern<>(
+                    new SequencePattern<>(Arrays.asList(
+                        new PipePattern<>(new PipePattern<>(new CapturePattern<>(StringPattern.<Character>is("class")), StringPattern.join()), NodeViewPattern.label()),
+                        StringPattern.ws(),
+                        new PipePattern<>(new PipePattern<>(new CapturePattern<>(StringPattern.id()), StringPattern.join()), NodeViewPattern.text()),
+                        StringPattern.ws(),
+                        new PipePattern<>(new PipePattern<>(new CapturePattern<>(StringPattern.<Character>is("{")), StringPattern.join()), NodeViewPattern.label())
+                    )),
+                    NodeViewPattern.leftToRightList()
+                ),
+                StringPattern.ws(),
+                NodeViewPattern.repeat(
+                    new PipePattern<>(
+                        new SequencePattern<>(Arrays.asList(
+                            //new PipePattern<>(new PipePattern<>(new CapturePattern<>(StringPattern.<Character>is("private")), StringPattern.join()), NodeViewPattern.label()),
+                            new PipePattern<>(new PipePattern<>(new CapturePattern<>(modifier), StringPattern.join()), NodeViewPattern.decision(Arrays.asList("private", "public", "protected"))),
+                            StringPattern.ws(),
+                            new PipePattern<>(new PipePattern<>(new CapturePattern<>(StringPattern.id()), StringPattern.join()), NodeViewPattern.text()),
+                            StringPattern.ws(),
+                            new PipePattern<>(new PipePattern<>(new CapturePattern<>(StringPattern.id()), StringPattern.join()), NodeViewPattern.text()),
+                            StringPattern.ws(),
+                            new PipePattern<>(new PipePattern<>(new CapturePattern<>(StringPattern.<Character>is(";")), StringPattern.join()), NodeViewPattern.label())
+                        )),
+                        NodeViewPattern.leftToRightList()
+                    )
+                ),
+                new PipePattern<>(
+                    new SequencePattern<>(Arrays.asList(
+                        new PipePattern<>(new PipePattern<>(new CapturePattern<>(StringPattern.<Character>is("}")), StringPattern.join()), NodeViewPattern.label())
+                    )),
+                    NodeViewPattern.leftToRightList()
+                )
+            )),
+            NodeViewPattern.topDownList()
+        );
+
+        Buffer<JComponent> o = Buffer.Util.create(JComponent.class);
+        p2.matches(new Hashtable<>(), Buffer.Util.wrap("class MyClass {}").traverse(), o);
 
         JComponent view = new UnderConstructionView(javaGrammar);
+        view = NodeViewPattern.createUnderConstructionView(p2);
+        //view = o.traverse().peek();
         NodeViewPanel contentPane = new NodeViewPanel();
         contentPane.setLayout(new BorderLayout());
         contentPane.add(view, BorderLayout.CENTER);

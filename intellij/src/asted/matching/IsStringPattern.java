@@ -3,10 +3,10 @@ package asted.matching;
 import java.util.Map;
 import java.util.stream.IntStream;
 
-public class KeywordPattern<T> implements Pattern<Character, T> {
+public class IsStringPattern<T> implements Pattern<Character, T> {
     private String word;
 
-    public KeywordPattern(String word) {
+    public IsStringPattern(String word) {
         this.word = word;
     }
 
