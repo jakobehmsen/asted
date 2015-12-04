@@ -12,11 +12,35 @@ import java.util.Hashtable;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+
 public class Main {
     public static void main(String[] args) throws BadLocationException {
+        /*ScriptEngineManager engineManager =
+            new ScriptEngineManager();
+        ScriptEngine engine =
+            engineManager.getEngineByName("nashorn");
+        engine.eval("function sum(a, b) { return a + b; }");
+        System.out.println(engine.eval("sum(1, 2);"));*/
+
+        /*
+        var stack =
+        new java.util.LinkedList();
+        [1, 2, 3, 4].forEach(function(item) {
+          stack.push(item);
+        });
+
+        print(stack);
+        print(stack.getClass());
+        */
+
+        /*if(1 != 2)
+            return;*/
+
         JFrame frame = new JFrame();
 
-        asted.matching.Pattern<Character, NodeViewFactory> javaGrammar = new asted.matching.Pattern<Character, NodeViewFactory>() {
+        /*asted.matching.Pattern<Character, NodeViewFactory> javaGrammar = new asted.matching.Pattern<Character, NodeViewFactory>() {
             private asted.matching.Pattern<Character, NodeViewFactory> wsImpl = new asted.matching.Pattern<Character, NodeViewFactory>() {
                 @Override
                 public boolean matches(Map<String, Buffer<Object>> locals, Input<Character> input, Buffer<NodeViewFactory> output) {
@@ -255,13 +279,13 @@ public class Main {
             public boolean matches(Map<String, Buffer<Object>> locals, Input<Character> input, Buffer<NodeViewFactory> output) {
                 return program.matches(locals, input, output);
             }
-        };
+        };*/
 
-        Pattern<Character, String> p = new SequencePattern<>(Arrays.asList(
+        /*Pattern<Character, String> p = new SequencePattern<>(Arrays.asList(
             new PipePattern<>(new CapturePattern<>(StringPattern.<Character>is("class")), StringPattern.join()),
             StringPattern.ws(),
             new PipePattern<>(new CapturePattern<>(StringPattern.id()), StringPattern.join())
-        ));
+        ));*/
 
         /*Pattern<Character, JComponent> p2 = new PipePattern<>(
             new SequencePattern<>(Arrays.asList(
@@ -320,8 +344,8 @@ public class Main {
         Buffer<JComponent> o = Buffer.Util.create(JComponent.class);
         p2.matches(new Hashtable<>(), Buffer.Util.wrap("class MyClass {}").traverse(), o);
 
-        JComponent view = new UnderConstructionView(javaGrammar);
-        view = NodeViewPattern.createUnderConstructionView(p2);
+        //JComponent view = new UnderConstructionView(javaGrammar);
+        JComponent view = NodeViewPattern.createUnderConstructionView(p2);
         //view = o.traverse().peek();
         NodeViewPanel contentPane = new NodeViewPanel();
         contentPane.setLayout(new BorderLayout());
@@ -332,6 +356,14 @@ public class Main {
         frame.setSize(1024, 768);
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        final Color COLOR_BUTTON_BACKGROUND = Color.decode("#d3dedb");
+
+        /*UIManager.put("ComboBox.buttonBackground", COLOR_BUTTON_BACKGROUND);
+        UIManager.put("ComboBox.buttonShadow", COLOR_BUTTON_BACKGROUND);
+        UIManager.put("ComboBox.buttonDarkShadow", COLOR_BUTTON_BACKGROUND);
+        UIManager.put("ComboBox.buttonHighlight", COLOR_BUTTON_BACKGROUND);*/
+
         frame.setVisible(true);
     }
 }

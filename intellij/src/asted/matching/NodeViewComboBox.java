@@ -1,9 +1,15 @@
 package asted.matching;
 
 import javax.swing.*;
+import javax.swing.plaf.basic.BasicArrowButton;
 import javax.swing.plaf.basic.BasicComboBoxRenderer;
+import javax.swing.plaf.basic.BasicComboBoxUI;
+import javax.swing.plaf.metal.MetalComboBoxUI;
+import javax.swing.plaf.synth.SynthComboBoxUI;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 
 public class NodeViewComboBox<E> extends JComboBox<E> implements NodeView {
@@ -52,9 +58,51 @@ public class NodeViewComboBox<E> extends JComboBox<E> implements NodeView {
             public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 Component component = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
 
-                ((JComponent)component).setBorder(BorderFactory.createEmptyBorder());
+                ((JComponent) component).setBorder(BorderFactory.createEmptyBorder());
 
                 return component;
+            }
+        });
+
+        setUI(new MetalComboBoxUI() {
+            @Override
+            protected JButton createArrowButton() {
+                return super.createArrowButton();
+                /*JButton button = new BasicArrowButton(BasicArrowButton.SOUTH,
+                    UIManager.getColor("ComboBox.buttonBackground"),
+                    UIManager.getColor("ComboBox.buttonShadow"),
+                    UIManager.getColor("ComboBox.buttonDarkShadow"),
+                    UIManager.getColor("ComboBox.buttonHighlight"));
+                button.setName("ComboBox.arrowButton");
+                return button;*/
+
+                /*JButton arrowButton = super.createArrowButton();
+
+                arrowButton.setPreferredSize(new Dimension(0, 0));
+                arrowButton.setSize(new Dimension(0, 0));
+                arrowButton.setMaximumSize(new Dimension(0, 0));
+                arrowButton.setMinimumSize(new Dimension(0, 0));
+
+                return arrowButton;*/
+
+                //return null;
+            }
+
+            @Override
+            public Dimension getPreferredSize(JComponent c) {
+                return super.getPreferredSize(c);
+            }
+        });
+
+
+        addItemListener(new ItemListener() {
+            @Override
+            public void itemStateChanged(ItemEvent e) {
+                if(getSelectedIndex() != -1) {
+                    setSize(((BasicComboBoxRenderer) getRenderer()).getPreferredSize());
+                    Component component = getComponent(0);
+                    component.toString();
+                }
             }
         });
     }
